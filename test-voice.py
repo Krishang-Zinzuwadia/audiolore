@@ -37,7 +37,10 @@ def generate_audio_stream():
         )
         
         # Save to file instead of playing (requires mpv)
-        filename = f"output_{speaker_key}.mp3"
+        output_dir = "test-voice-output"
+        os.makedirs(output_dir, exist_ok=True)
+        filename = os.path.join(output_dir, f"output_{speaker_key}.mp3")
+        
         with open(filename, "wb") as f:
             for chunk in audio_stream:
                 f.write(chunk)
