@@ -30,15 +30,18 @@ def generate_audio_stream():
         
         print(f"Generating audio for: {speaker_key}...")
         
-        audio_stream = client.generate(
+        audio_stream = client.text_to_speech.convert(
             text=line["text"],
-            voice=voice_id,
-            model="eleven_turbo_v2_5", # CRITICAL: Use Turbo for speed
-            stream=True
+            voice_id=voice_id,
+            model_id="eleven_turbo_v2_5"
         )
         
-        # In a real app, you yield bytes. Here we just play it locally to test.
-        stream(audio_stream)
+        # Save to file instead of playing (requires mpv)
+        filename = f"output_{speaker_key}.mp3"
+        with open(filename, "wb") as f:
+            for chunk in audio_stream:
+                f.write(chunk)
+        print(f"Saved audio to {filename}")
 
 if __name__ == "__main__":
     generate_audio_stream()
