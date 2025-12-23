@@ -13,7 +13,8 @@ with open(f"library/{BOOK_ID}.txt", "w", encoding="utf-8") as f:
     text = """
 "I am the King of Salem," the old man said.
 "Why would a king talk to a shepherd?" the boy asked, awed and embarrassed.
-"Because you like to travel."
+"Because you like to travel.
+"Yikes!!!!", screamed the little girl, as the shepherd trampled over her.
     """
     f.write(text.strip())
 print(f"Bypassed Upload: Created library/{BOOK_ID}.txt")

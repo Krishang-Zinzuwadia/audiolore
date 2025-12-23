@@ -91,7 +91,7 @@ async def get_audio_stream(book_id: str, cursor: int = Query(...)):
     
     # 2. Stream
     return StreamingResponse(
-        stream_audio_for_script(script),
+        stream_audio_for_script(script, book_id=book_id),
         media_type="audio/mpeg"
     )
 

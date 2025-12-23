@@ -3,6 +3,7 @@ import os
 from typing import Generator, Any
 from elevenlabs.client import ElevenLabs
 from dotenv import load_dotenv
+from ai.services.store import get_or_assign_voice, SPEAKER_REGISTRY
 
 load_dotenv()
 
@@ -18,35 +19,54 @@ if not api_key:
 # Initialize Client
 client = ElevenLabs(api_key=api_key)
 
-# Voice Mapping (Hardcoded for now, could be dynamic)
-VOICE_MAP = {
-    "narrator": "TxGEqnHWrfWFTfGW9XjX",  # Standard narrator (Josh)
-    "santiago": "2EiwWnXFnvU5JabPnv8n",  # Boy (Clyde)
-    "king": "SOYHLrjzK2X1ezoPC6cr"       # Old Man
-}
-
-def stream_audio_for_script(script: Any) -> Generator[bytes, None, None]:
+def stream_audio_for_script(script: Any, book_id: str) -> Generator[bytes, None, None]:
     """
     Generates audio for the given script.
     Yields MP3 bytes chunks immediately as they are generated.
     """
-    # Assuming script is a Pydantic model or Dict. Let's support Dict for flexibility/JSON compat
-    lines = script.get("lines", []) if isinstance(script, dict) else script.lines
+    # script is likely the AudioScript Pydantic model
+    # Convert to dict if needed, or access attributes
+    
+    characters = getattr(script, "characters", [])
+    lines = getattr(script, "lines", [])
+    
+    # If script is a dict
+    if isinstance(script, dict):
+        characters = script.get("characters", [])
+        lines = script.get("lines", [])
 
-    print(f"DEBUG: Audio Stream requested. Lines: {len(lines)}")
+    print(f"DEBUG: Audio Stream requested for Book {book_id}. Lines: {len(lines)}")
+    
+    # 1. Pre-Cast Characters
+    # Ensure every character in this chunk has an assigned voice
+    for char_profile in characters:
+        # If char_profile is dict, convert to object or handle in store?
+        # Store expects object likely. Let's assume Pydantic for now
+        # If it's a dict, we might need a little helper.
+        # But get_transcript returns the Pydantic model directly to main, and save_script saves it.
+        # So `script` here should be the Pydantic model from the cache.
+        get_or_assign_voice(book_id, char_profile)
+
+    # 2. Stream Lines
     for line in lines:
-        speaker_key = line.get("speaker", "narrator") if isinstance(line, dict) else line.speaker
-        text = line.get("text", "") if isinstance(line, dict) else line.text
+        speaker_name = line.speaker if not isinstance(line, dict) else line.get("speaker")
+        text = line.text if not isinstance(line, dict) else line.get("text")
         
-        print(f"DEBUG: Generating line for {speaker_key}: {text[:20]}...")
+        print(f"DEBUG: Generating line for {speaker_name}: {text[:20]}...")
 
-        # Determine Voice ID (Fallback to narrator)
-        voice_id = VOICE_MAP.get("narrator")
-        if "boy" in speaker_key.lower():
-             voice_id = VOICE_MAP["santiago"]
-        elif "old man" in speaker_key.lower() or "king" in speaker_key.lower():
-             voice_id = VOICE_MAP["king"]
-             
+        # Resolve Voice ID
+        voice_id = "TxGEqnHWrfWFTfGW9XjX" # Default Narrator
+        
+        if speaker_name.lower() == "narrator":
+             voice_id = "TxGEqnHWrfWFTfGW9XjX"
+        else:
+            # Look up in Registry
+             registry = SPEAKER_REGISTRY.get(book_id, {})
+             if speaker_name in registry:
+                 voice_id = registry[speaker_name]
+             else:
+                 print(f"WARN: Speaker '{speaker_name}' not found in registry (maybe 'narrator' implied?). Using Default.")
+                 
         try:
             # Stream from ElevenLabs
             audio_stream = client.text_to_speech.convert(
@@ -60,6 +80,4 @@ def stream_audio_for_script(script: Any) -> Generator[bytes, None, None]:
             print(f"DEBUG: Finished line.")
         except Exception as e:
             print(f"ERROR in streaming line: {e}")
-            # We should probably re-raise or yield an error frame? 
-            # For now just print to see it in logs.
             raise e
