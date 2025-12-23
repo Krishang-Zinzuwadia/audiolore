@@ -18,7 +18,7 @@ class AudioScript(BaseModel):
     lines: List[DialogueLine]
 
 # 2. Initialize the Model
-model = genai.GenerativeModel("gemini-3-flash", 
+model = genai.GenerativeModel("gemini-flash-latest", 
     generation_config={"response_mime_type": "application/json", "response_schema": AudioScript}
 )
 
