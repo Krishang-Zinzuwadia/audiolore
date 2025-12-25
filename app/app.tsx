@@ -2,10 +2,10 @@ import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
-import { HomeScreen } from './app/screens/HomeScreen';
-import { ListenScreen } from './app/screens/ListenScreen';
-import { SettingsScreen } from './app/screens/SettingsScreen';
-import { BottomTabBar } from './app/components/BottomTabBar';
+import { HomeScreen } from './app/screens/home-screen';
+import { ListenScreen } from './app/screens/listen-screen';
+import { SettingsScreen } from './app/screens/settings-screen';
+import { BottomTabBar } from './app/components/bottom-tab-bar';
 import { colors } from './app/constants/colors';
 
 const Tab = createBottomTabNavigator();

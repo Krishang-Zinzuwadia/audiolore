@@ -4,10 +4,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { HomeScreen } from './screens/HomeScreen';
-import { ListenScreen } from './screens/ListenScreen';
-import { SettingsScreen } from './screens/SettingsScreen';
-import { BottomTabBar } from './components/BottomTabBar';
+import { HomeScreen } from './screens/home-screen';
+import { ListenScreen } from './screens/listen-screen';
+import { SettingsScreen } from './screens/settings-screen';
+import { BottomTabBar } from './components/bottom-tab-bar';
 import { colors } from './constants/colors';
 
 const Tab = createBottomTabNavigator();

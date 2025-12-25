@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, Dimensions } from 'react-native';
-import { BookCard } from '../components/BookCard';
+import { BookCard } from '../components/book-card';
 import { mockAudiobooks } from '../data/mockData';
 import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';

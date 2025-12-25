@@ -15,6 +15,7 @@ yarn-error.log
 .direnv/
 
 # Env
+.env
 .env.local
 .env.development.local
 .env.test.local
@@ -38,6 +39,15 @@ yarn-error.log
 # Debug
 *.log
 
+# Python / Backend
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+*.spec
+
 # Build artifacts
 android/app/build/
 android/.gradle/
@@ -47,6 +57,8 @@ ios/build/
 .next/
 out/
 build/
+webapp/dist/
+webapp/dist-ssr/
 
 # Keep android and ios project structure
 !android/
@@ -56,3 +68,12 @@ build/
 *.apk
 *.aab
 *.ipa
+
+# Project specific - PDFs and MP3s are now in organized folders
+pdfs/*.pdf
+outputs/*.mp3
+
+# Keep sample files if needed
+!pdfs/sample.pdf
+!outputs/sample.mp3
+
