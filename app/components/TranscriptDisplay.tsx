@@ -31,23 +31,25 @@ export const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({
       <View style={styles.currentTextContainer}>
         <Text style={styles.currentText}>{currentSegment?.text || ''}</Text>
       </View>
-      {nextSegment && (
-        <View style={styles.nextTextContainer}>
-          <Text style={styles.nextText}>{nextSegment.text}</Text>
-        </View>
-      )}
       <ScrollView style={styles.fullTranscript} showsVerticalScrollIndicator={false}>
-        {transcript.map((segment, index) => (
-          <Text
-            key={index}
-            style={[
-              styles.transcriptLine,
-              index === currentIndex && styles.transcriptLineActive,
-            ]}
-          >
-            {segment.text}
-          </Text>
-        ))}
+        {transcript.map((segment, index) => {
+          const isActive = index === currentIndex;
+          const isPast = index < currentIndex;
+          const isUpcoming = index > currentIndex;
+          return (
+            <Text
+              key={index}
+              style={[
+                styles.transcriptLine,
+                isActive && styles.transcriptLineActive,
+                isUpcoming && styles.transcriptLineUpcoming,
+                isPast && styles.transcriptLinePast,
+              ]}
+            >
+              {segment.text}
+            </Text>
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -59,10 +61,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   currentTextContainer: {
-    minHeight: 100,
+    minHeight: 80,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.md,
   },
   currentText: {
     color: colors.white,
@@ -71,30 +74,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 32,
   },
-  nextTextContainer: {
-    minHeight: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  nextText: {
-    color: colors.gray,
-    fontSize: typography.sizes.md,
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
   fullTranscript: {
     flex: 1,
-    marginTop: spacing.lg,
   },
   transcriptLine: {
-    color: colors.gray,
-    fontSize: typography.sizes.sm,
-    marginBottom: spacing.sm,
-    lineHeight: 20,
+    fontSize: typography.sizes.md,
+    marginBottom: spacing.md,
+    lineHeight: 24,
+    textAlign: 'left',
   },
   transcriptLineActive: {
-    color: colors.primary,
-    fontWeight: typography.weights.semibold,
+    color: colors.white,
+    fontWeight: typography.weights.bold,
+  },
+  transcriptLineUpcoming: {
+    color: colors.white,
+    fontWeight: typography.weights.bold,
+  },
+  transcriptLinePast: {
+    color: colors.gray,
+    fontWeight: typography.weights.regular,
   },
 });

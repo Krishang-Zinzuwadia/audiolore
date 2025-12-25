@@ -23,6 +23,8 @@ export const ListenScreen: React.FC<ListenScreenProps> = ({ route, navigation })
     speed: 1,
   });
 
+  const [showFullTranscript, setShowFullTranscript] = useState(false);
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -81,46 +83,92 @@ export const ListenScreen: React.FC<ListenScreenProps> = ({ route, navigation })
         >
           <Ionicons name="chevron-back" size={28} color={colors.white} />
         </TouchableOpacity>
-        <Text style={styles.headerText}>Now Playing</Text>
-        <View style={styles.headerSpacer} />
+        {showFullTranscript ? (
+          <>
+            <Text style={styles.headerText}>{audiobook.title}</Text>
+            <TouchableOpacity
+              style={styles.closeTranscriptButton}
+              onPress={() => setShowFullTranscript(false)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close" size={28} color={colors.white} />
+            </TouchableOpacity>
+          </>
+        ) : (
+          <View style={styles.headerSpacer} />
+        )}
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.coverContainer}>
-          <LinearGradient
-            colors={audiobook.coverGradient || [audiobook.coverColor, audiobook.coverColor]}
-            style={styles.coverArt}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-          />
+      {showFullTranscript ? (
+        <View style={styles.fullTranscriptView}>
+          <View style={styles.transcriptSpeedControl}>
+            <TouchableOpacity
+              style={styles.speedControlButton}
+              onPress={() => {
+                const speeds = [0.75, 1, 1.25, 1.5, 2];
+                const currentIndex = speeds.indexOf(playbackState.speed);
+                const nextIndex = (currentIndex + 1) % speeds.length;
+                handleSpeedChange(speeds[nextIndex]);
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.speedControlText}>{playbackState.speed}x</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView
+            style={styles.fullTranscriptScroll}
+            contentContainerStyle={styles.fullTranscriptContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <TranscriptDisplay
+              transcript={audiobook.transcript}
+              currentTime={playbackState.currentTime}
+            />
+          </ScrollView>
+          <View style={styles.transcriptControlsContainer}>
+            <PlaybackControls
+              playbackState={playbackState}
+              duration={audiobook.duration}
+              onPlayPause={handlePlayPause}
+              onSpeedChange={handleSpeedChange}
+              onSeek={handleSeek}
+              onToggleTranscript={() => setShowFullTranscript(!showFullTranscript)}
+              showFullTranscript={showFullTranscript}
+              transcriptMode={true}
+            />
+          </View>
         </View>
+      ) : (
+        <View style={styles.mainContent}>
+          <View style={styles.infoContainer}>
+            <Text style={styles.title}>{audiobook.title}</Text>
+            <Text style={styles.author}>{audiobook.author}</Text>
+          </View>
 
-        <View style={styles.infoContainer}>
-          <Text style={styles.title}>{audiobook.title}</Text>
-          <Text style={styles.author}>{audiobook.author}</Text>
-        </View>
+          <View style={styles.coverContainer}>
+            <LinearGradient
+              colors={audiobook.coverGradient || [audiobook.coverColor, audiobook.coverColor]}
+              style={styles.coverArt}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+            />
+          </View>
 
-        <View style={styles.transcriptContainer}>
-          <TranscriptDisplay
-            transcript={audiobook.transcript}
-            currentTime={playbackState.currentTime}
-          />
-        </View>
+          <View style={{ flex: 1 }} />
 
-        <View style={styles.controlsContainer}>
-          <PlaybackControls
-            playbackState={playbackState}
-            duration={audiobook.duration}
-            onPlayPause={handlePlayPause}
-            onSpeedChange={handleSpeedChange}
-            onSeek={handleSeek}
-          />
+          <View style={styles.controlsContainer}>
+            <PlaybackControls
+              playbackState={playbackState}
+              duration={audiobook.duration}
+              onPlayPause={handlePlayPause}
+              onSpeedChange={handleSpeedChange}
+              onSeek={handleSeek}
+              onToggleTranscript={() => setShowFullTranscript(!showFullTranscript)}
+              showFullTranscript={showFullTranscript}
+            />
+          </View>
         </View>
-      </ScrollView>
+      )}
     </SafeAreaView>
   );
 };
@@ -135,28 +183,70 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
   },
   backButton: {
     padding: spacing.sm,
   },
   headerText: {
     color: colors.white,
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.semibold,
+    fontSize: typography.sizes.xxl,
+    fontWeight: typography.weights.bold,
   },
   headerSpacer: {
     width: 44,
   },
-  scrollView: {
+  closeTranscriptButton: {
+    padding: spacing.sm,
+  },
+  fullTranscriptView: {
     flex: 1,
   },
-  scrollContent: {
+  transcriptSpeedControl: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  speedControlButton: {
+    backgroundColor: colors.secondaryDark,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 20,
+  },
+  speedControlText: {
+    color: colors.white,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+  },
+  fullTranscriptScroll: {
+    flex: 1,
+  },
+  fullTranscriptContent: {
+    paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxl,
+  },
+  transcriptControlsContainer: {
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.backgroundDark,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  mainContent: {
+    flex: 1,
+    justifyContent: 'flex-start',
+  },
+  infoContainer: {
+    paddingHorizontal: spacing.xl,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+    alignItems: 'center',
   },
   coverContainer: {
     alignItems: 'center',
-    marginVertical: spacing.xl,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xs,
   },
   coverArt: {
     width: 280,
@@ -167,11 +257,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 16,
     elevation: 12,
-  },
-  infoContainer: {
-    paddingHorizontal: spacing.xl,
-    marginBottom: spacing.xl,
-    alignItems: 'center',
   },
   title: {
     color: colors.white,
@@ -191,7 +276,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   controlsContainer: {
-    marginTop: spacing.lg,
+    marginTop: spacing.xs,
   },
   errorContainer: {
     flex: 1,

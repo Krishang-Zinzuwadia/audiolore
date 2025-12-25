@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';
@@ -12,6 +13,9 @@ interface PlaybackControlsProps {
   onPlayPause: () => void;
   onSpeedChange: (speed: number) => void;
   onSeek: (time: number) => void;
+  onToggleTranscript: () => void;
+  showFullTranscript: boolean;
+  transcriptMode?: boolean;
 }
 
 const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5, 2];
@@ -22,7 +26,12 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
   onPlayPause,
   onSpeedChange,
   onSeek,
+  onToggleTranscript,
+  showFullTranscript,
+  transcriptMode = false,
 }) => {
+  const [showSpeedDropdown, setShowSpeedDropdown] = useState(false);
+
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -31,30 +40,82 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
 
   const progress = duration > 0 ? playbackState.currentTime / duration : 0;
 
-  const handleProgressBarPress = (event: any) => {
-    const { locationX } = event.nativeEvent;
-    const barWidth = event.currentTarget.width;
-    const newProgress = locationX / barWidth;
-    const newTime = newProgress * duration;
-    onSeek(newTime);
+  const handleSkipBack = () => {
+    onSeek(Math.max(0, playbackState.currentTime - 10));
+  };
+
+  const handleSkipForward = () => {
+    onSeek(Math.min(duration, playbackState.currentTime + 10));
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.progressSection}>
         <Text style={styles.timeText}>{formatTime(playbackState.currentTime)}</Text>
-        <View style={styles.progressBarContainer}>
-          <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
-          </View>
-        </View>
+        <Slider
+          style={styles.slider}
+          minimumValue={0}
+          maximumValue={duration}
+          value={playbackState.currentTime}
+          onSlidingComplete={(value) => onSeek(value)}
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.secondaryDark}
+          thumbTintColor={colors.primary}
+        />
         <Text style={styles.timeText}>{formatTime(duration)}</Text>
       </View>
 
-      <View style={styles.controlsRow}>
-        <TouchableOpacity style={styles.skipButton} activeOpacity={0.7}>
+      <View>
+        {!transcriptMode && showSpeedDropdown && (
+          <View style={styles.speedDropdownMenu}>
+            {SPEED_OPTIONS.map((speed) => (
+              <TouchableOpacity
+                key={speed}
+                style={[
+                  styles.speedMenuItem,
+                  playbackState.speed === speed && styles.speedMenuItemActive,
+                ]}
+                onPress={() => {
+                  onSpeedChange(speed);
+                  setShowSpeedDropdown(false);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.speedMenuText,
+                    playbackState.speed === speed && styles.speedMenuTextActive,
+                  ]}
+                >
+                  {speed}x
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.controlsRow}>
+        <TouchableOpacity 
+          style={styles.speedDropdownButton} 
+          onPress={() => transcriptMode ? (() => {
+            const speeds = [0.75, 1, 1.25, 1.5, 2];
+            const currentIndex = speeds.indexOf(playbackState.speed);
+            const nextIndex = (currentIndex + 1) % speeds.length;
+            onSpeedChange(speeds[nextIndex]);
+          })() : setShowSpeedDropdown(!showSpeedDropdown)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.speedDropdownText}>{playbackState.speed}x</Text>
+          {!transcriptMode && <Ionicons name="chevron-down" size={16} color={colors.white} />}
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.skipButton} 
+          onPress={handleSkipBack}
+          activeOpacity={0.7}
+        >
           <Ionicons name="play-back" size={32} color={colors.white} />
-          <Text style={styles.skipText}>15s</Text>
+          <Text style={styles.skipText}>10s</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -69,36 +130,27 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
           />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.skipButton} activeOpacity={0.7}>
+        <TouchableOpacity 
+          style={styles.skipButton} 
+          onPress={handleSkipForward}
+          activeOpacity={0.7}
+        >
           <Ionicons name="play-forward" size={32} color={colors.white} />
-          <Text style={styles.skipText}>30s</Text>
+          <Text style={styles.skipText}>10s</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.transcriptButton} 
+          onPress={onToggleTranscript}
+          activeOpacity={0.7}
+        >
+          <Ionicons 
+            name={showFullTranscript ? "list" : "mic"} 
+            size={24} 
+            color={colors.white} 
+          />
         </TouchableOpacity>
       </View>
-
-      <View style={styles.speedSection}>
-        <Text style={styles.speedLabel}>Playback Speed</Text>
-        <View style={styles.speedOptions}>
-          {SPEED_OPTIONS.map((speed) => (
-            <TouchableOpacity
-              key={speed}
-              style={[
-                styles.speedButton,
-                playbackState.speed === speed && styles.speedButtonActive,
-              ]}
-              onPress={() => onSpeedChange(speed)}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.speedText,
-                  playbackState.speed === speed && styles.speedTextActive,
-                ]}
-              >
-                {speed}x
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
       </View>
     </View>
   );
@@ -120,35 +172,47 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
     minWidth: 45,
   },
-  progressBarContainer: {
+  slider: {
     flex: 1,
     marginHorizontal: spacing.md,
-  },
-  progressBarBackground: {
-    height: 4,
-    backgroundColor: colors.secondaryDark,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 2,
+    height: 40,
   },
   controlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.xl,
+    gap: spacing.md,
+  },
+  speedDropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.secondaryDark,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 20,
+    gap: 4,
+  },
+  speedDropdownText: {
+    color: colors.white,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
   },
   skipButton: {
     alignItems: 'center',
-    marginHorizontal: spacing.xl,
   },
   skipText: {
     color: colors.white,
     fontSize: typography.sizes.xs,
     marginTop: 4,
+  },
+  transcriptButton: {
+    backgroundColor: colors.secondaryDark,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   playPauseButton: {
     width: 80,
@@ -163,37 +227,35 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  speedSection: {
+  speedDropdownMenu: {
+    position: 'absolute',
+    bottom: 60,
+    left: spacing.lg,
+    backgroundColor: colors.secondaryDark,
+    borderRadius: 12,
+    paddingVertical: spacing.sm,
+    minWidth: 80,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  speedMenuItem: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     alignItems: 'center',
   },
-  speedLabel: {
+  speedMenuItemActive: {
+    backgroundColor: 'rgba(55, 19, 236, 0.2)',
+  },
+  speedMenuText: {
     color: colors.white,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
-    marginBottom: spacing.md,
   },
-  speedOptions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  speedButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 20,
-    backgroundColor: colors.secondaryDark,
-    minWidth: 60,
-    alignItems: 'center',
-  },
-  speedButtonActive: {
-    backgroundColor: colors.primary,
-  },
-  speedText: {
-    color: colors.gray,
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.semibold,
-  },
-  speedTextActive: {
-    color: colors.white,
+  speedMenuTextActive: {
+    color: colors.primary,
   },
 });

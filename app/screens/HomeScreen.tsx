@@ -8,7 +8,7 @@ import { typography } from '../constants/typography';
 import { Audiobook } from '../types';
 
 const screenWidth = Dimensions.get('window').width;
-const bookWidth = (screenWidth - spacing.md * 3) / 2;
+const bookWidth = (screenWidth - spacing.lg * 5) / 2;
 
 interface HomeScreenProps {
   navigation: any;
@@ -111,12 +111,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   bookshelf: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   bookRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.lg,
+    gap: spacing.md,
   },
   bookSpacer: {
     width: bookWidth,

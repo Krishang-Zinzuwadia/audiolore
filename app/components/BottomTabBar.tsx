@@ -29,59 +29,75 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   };
 
   return (
-    <View style={styles.container}>
-      {state.routes.map((route: any, index: number) => {
-        const { options } = descriptors[route.key];
-        const isFocused = state.index === index;
+    <View style={styles.outerContainer}>
+      <View style={styles.container}>
+        {state.routes.map((route: any, index: number) => {
+          const { options } = descriptors[route.key];
+          const isFocused = state.index === index;
 
-        const onPress = () => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
 
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
-          }
-        };
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
 
-        const iconName = getIconName(route.name, isFocused);
-        const iconColor = isFocused ? colors.primary : colors.gray;
+          const iconName = getIconName(route.name, isFocused);
+          const iconColor = isFocused ? colors.primary : colors.gray;
 
-        return (
-          <TouchableOpacity
-            key={route.key}
-            accessibilityRole="button"
-            accessibilityState={isFocused ? { selected: true } : {}}
-            accessibilityLabel={options.tabBarAccessibilityLabel}
-            testID={options.tabBarTestID}
-            onPress={onPress}
-            style={styles.tab}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.iconContainer, isFocused && styles.iconContainerActive]}>
-              <Ionicons name={iconName as any} size={28} color={iconColor} />
-            </View>
-          </TouchableOpacity>
-        );
-      })}
+          return (
+            <TouchableOpacity
+              key={route.key}
+              accessibilityRole="button"
+              accessibilityState={isFocused ? { selected: true } : {}}
+              accessibilityLabel={options.tabBarAccessibilityLabel}
+              testID={options.tabBarTestID}
+              onPress={onPress}
+              style={styles.tab}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.iconContainer, isFocused && styles.iconContainerActive]}>
+                <Ionicons name={iconName as any} size={28} color={iconColor} />
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  outerContainer: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.lg,
+    paddingTop: spacing.sm,
+    alignItems: 'center',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
   container: {
     flexDirection: 'row',
     backgroundColor: colors.secondaryDark,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    paddingBottom: spacing.lg,
-    paddingTop: spacing.md,
-    paddingHorizontal: spacing.lg,
+    borderRadius: 30,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   tab: {
-    flex: 1,
+    paddingHorizontal: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },

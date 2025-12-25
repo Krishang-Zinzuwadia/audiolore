@@ -39,8 +39,20 @@ yarn-error.log
 *.log
 
 # Build artifacts
-android/
-ios/
+android/app/build/
+android/.gradle/
+android/gradle/
+ios/Pods/
+ios/build/
 .next/
 out/
 build/
+
+# Keep android and ios project structure
+!android/
+!ios/
+
+# Generated files
+*.apk
+*.aab
+*.ipa

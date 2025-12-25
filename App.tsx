@@ -1,7 +1,7 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { NavigationContainer } from '@react-navigation/native';
 import { HomeScreen } from './app/screens/HomeScreen';
 import { ListenScreen } from './app/screens/ListenScreen';
 import { SettingsScreen } from './app/screens/SettingsScreen';
