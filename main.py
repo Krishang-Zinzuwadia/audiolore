@@ -15,6 +15,16 @@ from ai.services.audio import stream_audio_for_script
 
 app = FastAPI()
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 class BookResponse(BaseModel):
     book_id: str
     total_length: int

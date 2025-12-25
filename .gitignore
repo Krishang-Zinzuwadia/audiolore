@@ -1,2 +1,34 @@
+# System and Environment
 .env
+.DS_Store
+.vscode/
+
+# Python / Backend
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+dist/
+build/
+*.spec
 test-voice-output/*
+
+# Node / Webapp
+node_modules/
+webapp/node_modules/
+webapp/dist/
+webapp/dist-ssr/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.local
+*.log
+
+# Project specific
+*.pdf
+*.mp3
+# Keep versioned sample if needed, but generally ignore heavy media
+!1540157347-HarlanEllison-IHaveNoMouthandIMustScream.pdf
