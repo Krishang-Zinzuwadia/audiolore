@@ -53,22 +53,45 @@ export default function DirectorPlayer({ bookId, onChunkLoaded }: Props) {
         const data = res.data;
         // Data format: { transcript: { lines: [...] }, next_cursor: int, audio_url: string }
 
-        if (data.transcript && data.transcript.lines) {
+        const hasLines =
+          data.transcript &&
+          data.transcript.lines &&
+          data.transcript.lines.length > 0;
+
+        if (hasLines) {
           setTranscript((prev) => [...prev, ...data.transcript.lines]);
           if (onChunkLoaded) onChunkLoaded(data.transcript);
-        }
 
-        if (data.audio_url) {
-          // Append base URL if relative (it is relative in backend: /books/...)
-          const fullAudioUrl = `http://localhost:8000${data.audio_url}`;
-          console.log("Setting audio URL:", fullAudioUrl);
-          setAudioUrl(fullAudioUrl);
+          if (data.audio_url) {
+            const fullAudioUrl = `http://localhost:8000${data.audio_url}`;
+            console.log("Setting audio URL:", fullAudioUrl);
+            setAudioUrl(fullAudioUrl);
+          } else {
+            setAudioUrl(null);
+          }
+
+          setNextCursor(data.next_cursor);
         } else {
-          console.log("No audio URL returned. End of book?");
-          setAudioUrl(null);
-        }
+          console.log("Received empty transcript chunk.");
+          setAudioUrl(null); // Ensure we don't play empty audio
 
-        setNextCursor(data.next_cursor);
+          if (data.next_cursor > currentCursor) {
+            console.log(
+              `Auto-advancing empty chunk: ${currentCursor} -> ${data.next_cursor}`
+            );
+            // Update cursor and fetch immediately
+            setCursor(data.next_cursor);
+            // We must clear ref locally or rely on finally block?
+            // If we recursively call, the ref logic might overlap, but since we are "done" with this cursor essentially...
+            // Let's release the lock for CURRENT cursor before starting NEXT one, strictly speaking.
+            loadingCursorRef.current = null;
+            loadChunk(data.next_cursor);
+            return; // Clean exit, skip finally block handling for THIS call's lock (we manually cleared it) or let it run
+          } else {
+            console.log("End of book (empty chunk + no progress).");
+            setNextCursor(data.next_cursor);
+          }
+        }
       } catch (err) {
         console.error("Failed to load chunk", err);
       } finally {
