@@ -61,8 +61,8 @@ async def get_transcript(book_id: str, cursor: int = 0):
     3. SAVES script to cache.
     4. Returns script + next cursor.
     """
-    # 1. Get Chunk
-    text_chunk, next_cursor = get_text_chunk(book_id, cursor, limit=30) # Started small
+    # 1. Get Chunk (10-15 sentences is a good balance for flow without too much wait)
+    text_chunk, next_cursor = get_text_chunk(book_id, cursor, limit=2)
     
     if not text_chunk:
          # End of book or invalid

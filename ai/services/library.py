@@ -42,10 +42,9 @@ def get_text_chunk(book_id: str, offset: int, limit: int = 50) -> Tuple[str, int
     if not os.path.exists(file_path):
         return "", offset
 
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
         f.seek(offset)
-        # Read a large enough buffer to likely contain 50 sentences (avg sentence 100-200 chars -> 10k chars needed)
-        # Reading 20k chars safely covers most cases.
+        # Read a large enough buffer to likely contain N sentences
         remaining_text = f.read(20000) 
     
     if not remaining_text:

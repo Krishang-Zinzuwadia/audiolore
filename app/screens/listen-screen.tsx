@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { TranscriptDisplay } from "../components/transcript-display";
 import { colors } from "../constants/colors";
@@ -26,6 +25,13 @@ interface ListenScreenProps {
   navigation: any;
 }
 
+// Prefetch cache structure
+interface PrefetchedChunk {
+  cursor: number;
+  transcript: TranscriptResponse;
+  audioUrl: string;
+}
+
 export const ListenScreen: React.FC<ListenScreenProps> = ({
   route,
   navigation,
@@ -41,21 +47,87 @@ export const ListenScreen: React.FC<ListenScreenProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [currentLineIndex, setCurrentLineIndex] = useState(-1);
 
+  // PREFETCHING: Store the next chunk ready to go
+  const [prefetchedChunk, setPrefetchedChunk] =
+    useState<PrefetchedChunk | null>(null);
+  const [isPrefetching, setIsPrefetching] = useState(false);
+
   // Prevent double-fetch
   const loadingCursorRef = useRef<number | null>(null);
+  const prefetchingCursorRef = useRef<number | null>(null);
 
   // Audio player
   const { state: audioState, controls } = useAudioPlayer(audioUrl, {
-    onPlaybackEnd: () => {
-      console.log("Audio ended, advancing to next chunk");
-      if (nextCursor > cursor) {
-        loadChunk(nextCursor);
-      }
-    },
+    onPlaybackEnd: handlePlaybackEnd,
     autoPlay: true,
   });
 
-  // Load a transcript chunk
+  // Handle when audio finishes - use prefetched chunk if available
+  function handlePlaybackEnd() {
+    console.log("Audio ended, checking prefetched chunk...");
+
+    if (prefetchedChunk && prefetchedChunk.cursor === nextCursor) {
+      // USE PREFETCHED CHUNK - instant transition!
+      console.log(`Using prefetched chunk at cursor ${nextCursor}`);
+
+      const chunk = prefetchedChunk;
+      setTranscriptLines((prev) => [
+        ...prev,
+        ...chunk.transcript.transcript.lines,
+      ]);
+      setAudioUrl(chunk.audioUrl);
+      setCursor(chunk.cursor);
+      setNextCursor(chunk.transcript.next_cursor);
+      setPrefetchedChunk(null);
+
+      // Start prefetching the NEXT next chunk
+      prefetchChunk(chunk.transcript.next_cursor);
+    } else if (nextCursor > cursor) {
+      // Fallback: load normally if prefetch not ready
+      console.log(`Prefetch not ready, loading cursor ${nextCursor} normally`);
+      loadChunk(nextCursor);
+    } else {
+      console.log("End of book reached");
+    }
+  }
+
+  // Prefetch the next chunk in background
+  const prefetchChunk = useCallback(
+    async (chunkCursor: number) => {
+      if (!audiobook?.id) return;
+      if (chunkCursor <= 0) return;
+      if (prefetchingCursorRef.current === chunkCursor) return;
+      if (prefetchedChunk?.cursor === chunkCursor) return; // Already have it
+
+      prefetchingCursorRef.current = chunkCursor;
+      setIsPrefetching(true);
+
+      try {
+        console.log(`PREFETCH: Starting prefetch for cursor ${chunkCursor}`);
+        const data = await getTranscript(audiobook.id, chunkCursor);
+
+        if (data.transcript?.lines?.length > 0) {
+          const audioUrlForChunk = getAudioUrl(audiobook.id, chunkCursor);
+
+          setPrefetchedChunk({
+            cursor: chunkCursor,
+            transcript: data,
+            audioUrl: audioUrlForChunk,
+          });
+
+          console.log(`PREFETCH: Ready! Cursor ${chunkCursor} cached`);
+        }
+      } catch (err) {
+        console.error("Prefetch failed (non-critical):", err);
+      } finally {
+        setIsPrefetching(false);
+        prefetchingCursorRef.current = null;
+      }
+    },
+    [audiobook?.id, prefetchedChunk]
+  );
+
+  // Load a transcript chunk (primary loading)
   const loadChunk = useCallback(
     async (chunkCursor: number) => {
       if (!audiobook?.id) return;
@@ -66,7 +138,7 @@ export const ListenScreen: React.FC<ListenScreenProps> = ({
       setError(null);
 
       try {
-        console.log(`Fetching transcript for cursor ${chunkCursor}`);
+        console.log(`LOAD: Fetching transcript for cursor ${chunkCursor}`);
         const data: TranscriptResponse = await getTranscript(
           audiobook.id,
           chunkCursor
@@ -75,10 +147,8 @@ export const ListenScreen: React.FC<ListenScreenProps> = ({
         const hasLines = data.transcript?.lines?.length > 0;
 
         if (hasLines) {
-          // Append new lines to transcript
           setTranscriptLines((prev) => [...prev, ...data.transcript.lines]);
 
-          // Set audio URL for playback
           if (data.audio_url) {
             const fullUrl = getAudioUrl(audiobook.id, chunkCursor);
             console.log("Setting audio URL:", fullUrl);
@@ -87,8 +157,12 @@ export const ListenScreen: React.FC<ListenScreenProps> = ({
 
           setCursor(chunkCursor);
           setNextCursor(data.next_cursor);
+
+          // START PREFETCHING NEXT CHUNK IMMEDIATELY
+          if (data.next_cursor > chunkCursor) {
+            prefetchChunk(data.next_cursor);
+          }
         } else {
-          // Empty chunk - either auto-advance or end
           if (data.next_cursor > chunkCursor) {
             console.log(
               `Empty chunk, auto-advancing ${chunkCursor} -> ${data.next_cursor}`
@@ -108,7 +182,7 @@ export const ListenScreen: React.FC<ListenScreenProps> = ({
         loadingCursorRef.current = null;
       }
     },
-    [audiobook?.id]
+    [audiobook?.id, prefetchChunk]
   );
 
   // Initial load
@@ -118,7 +192,9 @@ export const ListenScreen: React.FC<ListenScreenProps> = ({
       setTranscriptLines([]);
       setNextCursor(0);
       setAudioUrl(null);
+      setPrefetchedChunk(null);
       loadingCursorRef.current = null;
+      prefetchingCursorRef.current = null;
       loadChunk(0);
     }
   }, [audiobook?.id]);
@@ -134,10 +210,13 @@ export const ListenScreen: React.FC<ListenScreenProps> = ({
 
   // Skip forward (load next chunk)
   const handleSkipForward = useCallback(() => {
-    if (nextCursor > cursor && !isLoadingChunk) {
+    if (prefetchedChunk && prefetchedChunk.cursor === nextCursor) {
+      // Use prefetched chunk
+      handlePlaybackEnd();
+    } else if (nextCursor > cursor && !isLoadingChunk) {
       loadChunk(nextCursor);
     }
-  }, [nextCursor, cursor, isLoadingChunk, loadChunk]);
+  }, [nextCursor, cursor, isLoadingChunk, prefetchedChunk]);
 
   if (!audiobook) {
     return (
@@ -176,14 +255,22 @@ export const ListenScreen: React.FC<ListenScreenProps> = ({
       <View style={styles.statusBar}>
         <Text style={styles.statusText}>
           {isLoadingChunk
-            ? "🎭 Generating scene..."
+            ? "🎭 Generating..."
             : audioState.isLoading
-            ? "🔊 Loading audio..."
+            ? "🔊 Loading..."
             : audioState.isPlaying
             ? "▶️ Playing"
             : "⏸️ Paused"}
         </Text>
-        <Text style={styles.cursorText}>Cursor: {cursor}</Text>
+        <View style={styles.statusRight}>
+          {isPrefetching && (
+            <Text style={styles.prefetchText}>📦 Prefetching...</Text>
+          )}
+          {prefetchedChunk && (
+            <Text style={styles.prefetchReadyText}>✅ Next ready</Text>
+          )}
+          <Text style={styles.cursorText}>Cursor: {cursor}</Text>
+        </View>
       </View>
 
       {/* Error Display */}
@@ -217,8 +304,8 @@ export const ListenScreen: React.FC<ListenScreenProps> = ({
           currentLineIndex={currentLineIndex}
         />
 
-        {/* Loading indicator for next chunk */}
-        {isLoadingChunk && transcriptLines.length > 0 && (
+        {/* Loading indicator for next chunk (only if NOT prefetched) */}
+        {isLoadingChunk && transcriptLines.length > 0 && !prefetchedChunk && (
           <View style={styles.chunkLoadingIndicator}>
             <ActivityIndicator size="small" color={colors.primary} />
             <Text style={styles.chunkLoadingText}>
@@ -263,7 +350,9 @@ export const ListenScreen: React.FC<ListenScreenProps> = ({
           <TouchableOpacity
             style={styles.controlButton}
             onPress={handleSkipForward}
-            disabled={nextCursor <= cursor || isLoadingChunk}
+            disabled={
+              nextCursor <= cursor || (isLoadingChunk && !prefetchedChunk)
+            }
             activeOpacity={0.7}
           >
             <Ionicons
@@ -276,7 +365,8 @@ export const ListenScreen: React.FC<ListenScreenProps> = ({
 
         {/* Info Text */}
         <Text style={styles.infoText}>
-          {transcriptLines.length} lines loaded
+          {transcriptLines.length} lines •{" "}
+          {prefetchedChunk ? "Next chunk ready!" : "Loading next..."}
         </Text>
       </View>
     </SafeAreaView>
@@ -322,10 +412,23 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: typography.sizes.sm,
   },
+  statusRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
   cursorText: {
     color: colors.gray,
     fontSize: typography.sizes.xs,
     fontFamily: "monospace",
+  },
+  prefetchText: {
+    color: "#f39c12",
+    fontSize: typography.sizes.xs,
+  },
+  prefetchReadyText: {
+    color: "#27ae60",
+    fontSize: typography.sizes.xs,
   },
   errorBanner: {
     flexDirection: "row",
