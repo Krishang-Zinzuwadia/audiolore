@@ -24,36 +24,52 @@ class VoiceProfile:
         self.roughness = roughness
         self.accent = accent
 
-# Hardcoded Pool of ElevenLabs Voices (Approximations)
-# In a real app, this would come from a database or API analysis.
+# Hardcoded Pool of ElevenLabs Premade Voices
+# Updated with verified voice IDs from ElevenLabs (Dec 2024)
 
 VOICE_POOL: List[VoiceProfile] = [
     # --- MALE ---
-    VoiceProfile("TxGEqnHWrfWFTfGW9XjX", "Josh (Narrator)", 
-                 gender=1.0, age=0.5, pitch=0.5, tempo=0.5, volume=0.5, roughness=0.2, accent="American"),
+    # Adam - Deep male narrator
+    VoiceProfile("pNInz6obpgDQGcFmaJgB", "Adam (Narrator)", 
+                 gender=1.0, age=0.5, pitch=0.3, tempo=0.5, volume=0.6, roughness=0.2, accent="American"),
     
-    VoiceProfile("2EiwWnXFnvU5JabPnv8n", "Clyde", 
-                 gender=1.0, age=0.4, pitch=0.2, tempo=0.5, volume=0.7, roughness=0.5, accent="American"),
+    # Brian - Deep male narrator  
+    VoiceProfile("nPczCjzI2devNBz1zQrb", "Brian (Deep)", 
+                 gender=1.0, age=0.5, pitch=0.2, tempo=0.5, volume=0.7, roughness=0.3, accent="American"),
+    
+    # Clyde - War veteran character
+    VoiceProfile("2EiwWnXFnvU5JabPnv8n", "Clyde (Gruff)", 
+                 gender=1.0, age=0.6, pitch=0.2, tempo=0.4, volume=0.7, roughness=0.6, accent="American"),
+    
+    # Bill - Strong documentary voice
+    VoiceProfile("pqHfZKP75CvOlQylNhV4", "Bill (Strong)", 
+                 gender=1.0, age=0.6, pitch=0.3, tempo=0.5, volume=0.8, roughness=0.4, accent="American"),
                  
-    VoiceProfile("SOYHLrjzK2X1ezoPC6cr", "Harry (Old)", 
-                 gender=1.0, age=0.9, pitch=0.3, tempo=0.3, volume=0.5, roughness=0.8, accent="American"),
-
-    VoiceProfile("ODq5zmih8GrVes37Dizj", "Patrick (Deep)", 
-                 gender=1.0, age=0.6, pitch=0.1, tempo=0.6, volume=0.8, roughness=0.3, accent="American"),
+    # Antoni - Young well-rounded male
+    VoiceProfile("ErXwobaYiN019PkySvjV", "Antoni (Young)", 
+                 gender=0.8, age=0.3, pitch=0.5, tempo=0.6, volume=0.5, roughness=0.1, accent="American"),
 
     # --- FEMALE ---
-    VoiceProfile("21m00Tcm4TlvDq8ikWAM", "Rachel", 
-                 gender=0.0, age=0.3, pitch=0.8, tempo=0.6, volume=0.5, roughness=0.1, accent="American"),
+    # Rachel - Standard female
+    VoiceProfile("21m00Tcm4TlvDq8ikWAM", "Rachel (Female)", 
+                 gender=0.0, age=0.3, pitch=0.7, tempo=0.5, volume=0.5, roughness=0.1, accent="American"),
                  
-    VoiceProfile("AZnzlk1XvdvUeBnXmlld", "Domi", 
-                 gender=0.0, age=0.2, pitch=0.9, tempo=0.7, volume=0.6, roughness=0.0, accent="American"),
-
-    VoiceProfile("EXAVITQu4vr4xnSDxMaL", "Bella", 
-                 gender=0.0, age=0.4, pitch=0.6, tempo=0.5, volume=0.5, roughness=0.2, accent="American"),
+    # Bella - Soft female
+    VoiceProfile("EXAVITQu4vr4xnSDxMaL", "Bella (Soft)", 
+                 gender=0.0, age=0.4, pitch=0.6, tempo=0.5, volume=0.4, roughness=0.1, accent="American"),
+    
+    # Charlotte - Seductive/confident
+    VoiceProfile("XB0fDUnXU5powFXDhCwa", "Charlotte (Confident)", 
+                 gender=0.1, age=0.4, pitch=0.5, tempo=0.5, volume=0.6, roughness=0.2, accent="British"),
                  
     # --- BRITISH ---
-    VoiceProfile("ZOrPm3TLptQm7ow60n65", "Charlie (British)", 
-                 gender=1.0, age=0.5, pitch=0.5, tempo=0.5, volume=0.5, roughness=0.2, accent="British"),
+    # Daniel - British news presenter
+    VoiceProfile("onwK4e9ZLuTAKqWW03F9", "Daniel (British)", 
+                 gender=1.0, age=0.5, pitch=0.4, tempo=0.5, volume=0.6, roughness=0.2, accent="British"),
+    
+    # Alice - British confident female
+    VoiceProfile("Xb7hH8MSUJpSbSDYk0k2", "Alice (British)", 
+                 gender=0.0, age=0.4, pitch=0.6, tempo=0.5, volume=0.6, roughness=0.1, accent="British"),
 ]
 
 def get_all_voices():
