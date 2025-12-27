@@ -1,98 +1,163 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { TranscriptSegment } from '../types';
-import { colors } from '../constants/colors';
-import { spacing } from '../constants/spacing';
-import { typography } from '../constants/typography';
+import React from "react";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { DialogueLine } from "../types";
+import { colors } from "../constants/colors";
+import { spacing } from "../constants/spacing";
+import { typography } from "../constants/typography";
 
 interface TranscriptDisplayProps {
-  transcript: TranscriptSegment[];
-  currentTime: number;
+  lines: DialogueLine[];
+  currentLineIndex?: number;
+}
+
+/**
+ * Generate a consistent color from a string (speaker name)
+ */
+function stringToColor(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const c = (hash & 0x00ffffff).toString(16).toUpperCase();
+  return "#" + "00000".substring(0, 6 - c.length) + c;
 }
 
 export const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({
-  transcript,
-  currentTime,
+  lines,
+  currentLineIndex = -1,
 }) => {
-  const getCurrentSegmentIndex = (): number => {
-    return transcript.findIndex(
-      (segment) => currentTime >= segment.startTime && currentTime < segment.endTime
-    );
-  };
+  const scrollRef = React.useRef<ScrollView>(null);
 
-  const currentIndex = getCurrentSegmentIndex();
-  const currentSegment = currentIndex >= 0 ? transcript[currentIndex] : transcript[0];
-  const nextSegment = currentIndex >= 0 && currentIndex < transcript.length - 1
-    ? transcript[currentIndex + 1]
-    : null;
+  // Auto-scroll when current line changes
+  React.useEffect(() => {
+    if (scrollRef.current && currentLineIndex >= 0) {
+      // Approximate scroll position (each line ~60px)
+      scrollRef.current.scrollTo({
+        y: Math.max(0, currentLineIndex * 60 - 100),
+        animated: true,
+      });
+    }
+  }, [currentLineIndex]);
+
+  if (lines.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Waiting for transcript...</Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.currentTextContainer}>
-        <Text style={styles.currentText}>{currentSegment?.text || ''}</Text>
-      </View>
-      <ScrollView style={styles.fullTranscript} showsVerticalScrollIndicator={false}>
-        {transcript.map((segment, index) => {
-          const isActive = index === currentIndex;
-          const isPast = index < currentIndex;
-          const isUpcoming = index > currentIndex;
-          return (
+    <ScrollView
+      ref={scrollRef}
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.content}
+    >
+      {lines.map((line, index) => {
+        const isNarrator = line.speaker.toLowerCase() === "narrator";
+        const speakerColor = isNarrator
+          ? colors.gray
+          : stringToColor(line.speaker);
+        const isActive = index === currentLineIndex;
+        const isPast = index < currentLineIndex;
+
+        return (
+          <View
+            key={index}
+            style={[
+              styles.lineContainer,
+              isActive && styles.lineContainerActive,
+            ]}
+          >
             <Text
-              key={index}
               style={[
-                styles.transcriptLine,
-                isActive && styles.transcriptLineActive,
-                isUpcoming && styles.transcriptLineUpcoming,
-                isPast && styles.transcriptLinePast,
+                styles.speaker,
+                { color: speakerColor },
+                isActive && styles.speakerActive,
               ]}
             >
-              {segment.text}
+              {line.speaker.toUpperCase()}
             </Text>
-          );
-        })}
-      </ScrollView>
-    </View>
+            <View style={styles.textContainer}>
+              <Text
+                style={[
+                  styles.lineText,
+                  isNarrator && styles.lineTextNarrator,
+                  isPast && styles.lineTextPast,
+                  isActive && styles.lineTextActive,
+                ]}
+              >
+                {line.text}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  content: {
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
   },
-  currentTextContainer: {
-    minHeight: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-    paddingHorizontal: spacing.md,
-  },
-  currentText: {
-    color: colors.white,
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
-    textAlign: 'center',
-    lineHeight: 32,
-  },
-  fullTranscript: {
+  emptyContainer: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: spacing.xxl,
   },
-  transcriptLine: {
-    fontSize: typography.sizes.md,
-    marginBottom: spacing.md,
-    lineHeight: 24,
-    textAlign: 'left',
-  },
-  transcriptLineActive: {
-    color: colors.white,
-    fontWeight: typography.weights.bold,
-  },
-  transcriptLineUpcoming: {
-    color: colors.white,
-    fontWeight: typography.weights.bold,
-  },
-  transcriptLinePast: {
+  emptyText: {
     color: colors.gray,
-    fontWeight: typography.weights.regular,
+    fontSize: typography.sizes.md,
+    fontStyle: "italic",
+  },
+  lineContainer: {
+    flexDirection: "row",
+    marginBottom: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 8,
+  },
+  lineContainerActive: {
+    backgroundColor: "rgba(55, 19, 236, 0.15)",
+  },
+  speaker: {
+    width: 80,
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.bold,
+    textAlign: "right",
+    paddingRight: spacing.md,
+    paddingTop: 2,
+  },
+  speakerActive: {
+    opacity: 1,
+  },
+  textContainer: {
+    flex: 1,
+    borderLeftWidth: 2,
+    borderLeftColor: colors.secondaryDark,
+    paddingLeft: spacing.md,
+  },
+  lineText: {
+    color: colors.white,
+    fontSize: typography.sizes.md,
+    lineHeight: 24,
+  },
+  lineTextNarrator: {
+    fontStyle: "italic",
+    color: colors.gray,
+  },
+  lineTextPast: {
+    color: colors.gray,
+  },
+  lineTextActive: {
+    color: colors.white,
+    fontWeight: typography.weights.semibold,
   },
 });
