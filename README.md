@@ -52,48 +52,91 @@ mobile-app/
 - @react-native-community/slider
 
 ### Backend
-- Python
+- Python 3.8+
 - Google AI API
 - ElevenLabs API
+- MongoDB (Atlas or local instance)
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js (v18 or higher)
-- Python 3.x
+- Python 3.8 or higher
+- MongoDB Atlas account or local MongoDB instance
 - Android SDK (for building Android app)
 - Expo Go app (for testing)
 
 ### Installation
 
-1. Install dependencies:
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd mobile-app
+```
+
+2. Install Node.js dependencies:
 ```bash
 npm install
 ```
 
-2. Set up environment variables in `.env`:
-```
-GOOGLE_API_KEY=""
-ELEVENLABS_API_KEY=""
-```
-
-3. Start the mobile app:
+3. Install Python dependencies:
 ```bash
-npx expo start
-# or build for Android
-npx expo run:android
+pip install -r requirements.txt
 ```
 
-4. Start the backend:
+4. Set up environment variables:
+   - Copy `.env.example` to `.env`
+   - Add your API keys:
+```env
+GOOGLE_API_KEY=your_google_api_key
+ELEVENLABS_API_KEY=your_elevenlabs_api_key
+MONGODB_URL=your_mongodb_connection_string
+MONGODB_DATABASE=audiolore
+EXPO_PUBLIC_API_URL=http://your-local-ip:8000
+```
+
+5. Start the backend server:
 ```bash
 python scripts/main.py
+# Server will run on http://0.0.0.0:8000
+# API docs available at http://localhost:8000/docs
 ```
 
-5. Start the web dashboard:
+6. Start the mobile app:
+```bash
+npx expo start
+```
+
+7. Start the web dashboard (optional):
 ```bash
 cd webapp
+npm install
 npm run dev
+```
+
+### MongoDB Setup
+
+The app uses MongoDB to store:
+- **Books**: Title, author, cover image, chapters with full text
+- **Scripts**: Cached AI-generated dialogue scripts
+- **Voices**: Character voice assignments
+
+#### MongoDB Atlas (Recommended for Production)
+1. Create a free account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+2. Create a new cluster
+3. Add your IP to the whitelist
+4. Create a database user
+5. Copy the connection string to `.env`
+
+#### Local MongoDB (Development)
+```bash
+# Install MongoDB Community Edition
+# Then start MongoDB:
+mongod --dbpath /path/to/data
+
+# Update .env:
+MONGODB_URL=mongodb://localhost:27017
 ```
 
 ## Color Palette

@@ -3,6 +3,7 @@
  */
 
 import { API_BASE_URL, apiFetch } from './api';
+import { BookMetadata } from '../types';
 
 // ============ Response Types ============
 
@@ -87,4 +88,20 @@ export async function getTranscript(
  */
 export function getAudioUrl(bookId: string, cursor: number): string {
   return `${API_BASE_URL}/books/${bookId}/audio?cursor=${cursor}`;
+}
+
+/**
+ * Get all books from the library
+ */
+export async function getAllBooks(): Promise<BookMetadata[]> {
+  return apiFetch<BookMetadata[]>('/books');
+}
+
+/**
+ * Trigger Gemini analysis for all chunks in a book
+ */
+export async function analyzeBookChunks(bookId: string): Promise<any> {
+  return apiFetch(`/books/${bookId}/analyze`, {
+    method: 'POST',
+  });
 }

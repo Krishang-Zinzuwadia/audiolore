@@ -2,59 +2,118 @@
 import os
 import re
 from pypdf import PdfReader
-from typing import Tuple
+from typing import Tuple, Optional, List
+from ai.database import get_database, BOOKS_COLLECTION
+from ai.models import Book, Chapter
+from datetime import datetime
 
-# Ensure library directory exists
+# Ensure library directory exists (for backward compatibility)
 LIBRARY_DIR = "library"
 os.makedirs(LIBRARY_DIR, exist_ok=True)
 
-def save_text_from_pdf(pdf_file, book_id: str) -> str:
+def save_text_from_pdf(pdf_file, book_id: str, title: str = None, author: str = None, image_url: str = None) -> Book:
     """
-    Extracts text from uploaded PDF and saves it to library/{book_id}.txt.
-    Returns the path to the text file.
+    Extracts text from uploaded PDF, splits into chapters, and saves to MongoDB.
+    Returns the Book object.
     """
     reader = PdfReader(pdf_file)
-    text = ""
+    full_text = ""
     for page in reader.pages:
-        text += page.extract_text() + "\n"
+        full_text += page.extract_text() + "\n"
     
-    file_path = os.path.join(LIBRARY_DIR, f"{book_id}.txt")
-    with open(file_path, "w", encoding="utf-8") as f:
-        f.write(text)
+    # Simple chapter detection (you can improve this logic)
+    # For now, treat the entire book as one chapter
+    chapters = []
+    chapter_content = full_text.strip()
     
-    return file_path
+    if chapter_content:
+        chapter = Chapter(
+            chapter_number=1,
+            title="Chapter 1",
+            content=chapter_content,
+            word_count=len(chapter_content.split())
+        )
+        chapters.append(chapter)
+    
+    # Create book document
+    book = Book(
+        book_id=book_id,
+        title=title or book_id,
+        author=author or "Unknown Author",
+        image_url=image_url,
+        total_length=len(full_text),
+        chunks=len(chapters),
+        chapters=chapters,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+    )
+    
+    # Save to MongoDB
+    db = get_database()
+    books_collection = db[BOOKS_COLLECTION]
+    
+    # Upsert book (replace if exists)
+    books_collection.replace_one(
+        {"book_id": book_id},
+        book.dict(by_alias=True),
+        upsert=True
+    )
+    
+    print(f"Saved book '{book_id}' to MongoDB with {len(chapters)} chapter(s)")
+    
+    return book
+
+def get_book(book_id: str) -> Optional[Book]:
+    """Get book from MongoDB"""
+    db = get_database()
+    books_collection = db[BOOKS_COLLECTION]
+    
+    book_data = books_collection.find_one({"book_id": book_id})
+    if book_data:
+        return Book(**book_data)
+    return None
+
+def get_all_books() -> List[Book]:
+    """Get all books from MongoDB"""
+    db = get_database()
+    books_collection = db[BOOKS_COLLECTION]
+    
+    books = []
+    for book_data in books_collection.find():
+        books.append(Book(**book_data))
+    return books
 
 def get_total_length(book_id: str) -> int:
-    file_path = os.path.join(LIBRARY_DIR, f"{book_id}.txt")
-    if not os.path.exists(file_path):
-        return 0
-    with open(file_path, "r", encoding="utf-8") as f:
-        return len(f.read())
+    """Get total length of book from MongoDB"""
+    book = get_book(book_id)
+    if book:
+        return book.total_length
+    return 0
 
 def get_text_chunk(book_id: str, offset: int, limit: int = 50) -> Tuple[str, int]:
     """
     Returns a chunk of text starting from `offset`.
-    It attempts to grab `limit` sentences, but ensures it doesn't split a sentence in half.
+    It attempts to grab `limit` sentences from MongoDB chapters.
     
     Returns: (chunk_text, next_offset)
     """
-    file_path = os.path.join(LIBRARY_DIR, f"{book_id}.txt")
-    if not os.path.exists(file_path):
+    book = get_book(book_id)
+    if not book or not book.chapters:
         return "", offset
-
-    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-        f.seek(offset)
-        # Read a large enough buffer to likely contain N sentences
-        remaining_text = f.read(20000) 
+    
+    # Combine all chapters into one text
+    full_text = "\n\n".join([chapter.content for chapter in book.chapters])
+    
+    if offset >= len(full_text):
+        return "", offset
+    
+    # Get remaining text from offset
+    remaining_text = full_text[offset:offset + 20000]
     
     if not remaining_text:
         return "", offset
 
-    # Sentence splitting logic:
-    # We want to find the Nth occurrence of a sentence terminator (. ? ! \n)
-    # Regex for sentence delimiters.
-    # Note: simple split might be fooling on "Mr." or "Dr.", but good enough for mvp.
-    
+    # Sentence splitting logic
     sentence_endings = [m.end() for m in re.finditer(r'[\.\?\!\n]+', remaining_text)]
     
     if len(sentence_endings) < limit:
@@ -68,9 +127,5 @@ def get_text_chunk(book_id: str, offset: int, limit: int = 50) -> Tuple[str, int
     
     # Calculate next absolute offset
     next_offset = offset + len(chunk)
-    
-    # Trim leading/trailing whitespace from chunk, but keep offsets accurate?
-    # Actually, simpler to just return the raw text chunk and update offset.
-    # The client might care about clean text, but the Brain needs context.
     
     return chunk, next_offset

@@ -58,24 +58,19 @@ ios/build/
 out/
 build/
 webapp/dist/
-webapp/dist-ssr/
+
+# Documentation (generated/temporary)
+QUICKSTART.md
+MONGODB_SETUP.md
+MONGODB_IMPLEMENTATION.md
+INTEGRATION_COMPLETE.md
+
+# Generated content
+pdfs/
+outputs/
+library/*.txt
+test-voice-output/
 
 # Keep android and ios project structure
 !android/
 !ios/
-
-# Generated files
-*.apk
-*.aab
-*.ipa
-
-# Project specific - PDFs and MP3s are now in organized folders
-pdfs/*.pdf
-outputs/*.mp3
-
-# Keep sample files if needed
-!pdfs/sample.pdf
-!outputs/sample.mp3
-
-/pdfs/*.pdf
-/outputs/*.mp3

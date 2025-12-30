@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, Dimensions, ActivityIndicator } from 'react-native';
 import { BookCard } from '../components/book-card';
-import { mockAudiobooks } from '../data/mockData';
+import { getAllBooks } from '../services/audioService';
 import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';
 import { typography } from '../constants/typography';
@@ -15,17 +15,57 @@ interface HomeScreenProps {
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
-  const readyToListen = mockAudiobooks.filter((book) => !book.isUploaded);
-  const myUploads = mockAudiobooks.filter((book) => book.isUploaded);
+  const [books, setBooks] = useState<Audiobook[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadBooks();
+  }, []);
+
+  const loadBooks = async () => {
+    try {
+      setLoading(true);
+      const booksData = await getAllBooks();
+      
+      // Transform API response to Audiobook format
+      const audiobooks: Audiobook[] = booksData.map((book) => ({
+        id: book.book_id,
+        title: book.title,
+        author: book.author,
+        duration: Math.floor(book.total_length / 1000), // Rough estimate
+        progress: 0,
+        coverColor: getRandomColor(),
+        isUploaded: false,
+        transcript: [],
+      }));
+      
+      setBooks(audiobooks);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load books. Make sure the backend is running.');
+      console.error('Error loading books:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getRandomColor = () => {
+    const colors = ['#3713ec', '#9b4ef6', '#e74c3c', '#3498db', '#2ecc71', '#f39c12'];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
+
+  const readyToListen = books.filter((book) => !book.isUploaded);
+  const myUploads = books.filter((book) => book.isUploaded);
 
   const handleBookPress = (audiobook: Audiobook) => {
     navigation.navigate('Listen', { audiobook });
   };
 
-  const renderBookGrid = (books: Audiobook[]) => {
+  const renderBookGrid = (booksList: Audiobook[]) => {
     const rows: Audiobook[][] = [];
-    for (let i = 0; i < books.length; i += 2) {
-      rows.push(books.slice(i, i + 2));
+    for (let i = 0; i < booksList.length; i += 2) {
+      rows.push(booksList.slice(i, i + 2));
     }
 
     return rows.map((row, rowIndex) => (
@@ -41,6 +81,28 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       </View>
     ));
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Loading books...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContent}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.errorHint}>Check if backend is running on port 8000</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
